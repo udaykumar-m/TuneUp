@@ -25,19 +25,30 @@ class _AudioFilesScreenState extends State<AudioFilesScreen> {
   final OnAudioQuery _audioQuery = OnAudioQuery();
   final AudioPlayer _audioPlayer = AudioPlayer();
   List<SongModel> _songs = [];
+  int? _currentSongIndex;
   bool _isPlaying = false;
-  String? _currentSongPath;
+  Duration _currentPosition = Duration.zero;
+  Duration _songDuration = Duration.zero;
 
   @override
   void initState() {
     super.initState();
     _fetchAudioFiles();
+    _audioPlayer.onPositionChanged.listen((Duration newPosition) {
+      setState(() {
+        _currentPosition = newPosition;
+      });
+    });
+
+    _audioPlayer.onDurationChanged.listen((Duration newDuration) {
+      setState(() {
+        _songDuration = newDuration;
+      });
+    });
   }
 
   Future<void> _fetchAudioFiles() async {
-    // Request storage permission
     if (await _requestPermission()) {
-      // Query all songs on the device
       List<SongModel> songs = await _audioQuery.querySongs();
       setState(() {
         _songs = songs;
@@ -50,21 +61,117 @@ class _AudioFilesScreenState extends State<AudioFilesScreen> {
     return status.isGranted;
   }
 
-  // Function to play or pause the audio
-  Future<void> _playPauseAudio(String songPath) async {
-    if (_isPlaying && _currentSongPath == songPath) {
+  void _playPauseAudio(String songPath) async {
+    if (_isPlaying && _currentSongIndex != null) {
       await _audioPlayer.pause();
       setState(() {
         _isPlaying = false;
       });
     } else {
-      await _audioPlayer.play(DeviceFileSource(
-          songPath)); // Use DeviceFileSource to play local files
+      await _audioPlayer.play(DeviceFileSource(songPath));
       setState(() {
         _isPlaying = true;
-        _currentSongPath = songPath;
       });
     }
+  }
+
+  void _nextSong() {
+    if (_currentSongIndex != null && _currentSongIndex! < _songs.length - 1) {
+      _currentSongIndex = _currentSongIndex! + 1;
+      _playPauseAudio(_songs[_currentSongIndex!].data);
+    }
+  }
+
+  void _previousSong() {
+    if (_currentSongIndex != null && _currentSongIndex! > 0) {
+      _currentSongIndex = _currentSongIndex! - 1;
+      _playPauseAudio(_songs[_currentSongIndex!].data);
+    }
+  }
+
+  void _openPlayer(BuildContext context, int songIndex) {
+    _currentSongIndex = songIndex;
+    _playPauseAudio(_songs[songIndex].data);
+
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => _musicPlayerUI(context, songIndex),
+    );
+  }
+
+  Widget _musicPlayerUI(BuildContext context, int songIndex) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(height: 20),
+        QueryArtworkWidget(
+          id: _songs[songIndex].id,
+          type: ArtworkType.AUDIO,
+          nullArtworkWidget: Icon(Icons.music_note, size: 100),
+          artworkFit: BoxFit.cover,
+        ),
+        SizedBox(height: 10),
+        Text(
+          _songs[songIndex].title,
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        ),
+        Text(
+          _songs[songIndex].artist ?? "Unknown Artist",
+          style: TextStyle(fontSize: 18, color: Colors.grey),
+        ),
+        SizedBox(height: 20),
+        Slider(
+          value: _currentPosition.inSeconds.toDouble(),
+          min: 0,
+          max: _songDuration.inSeconds.toDouble(),
+          onChanged: (double value) async {
+            final newPosition = Duration(seconds: value.toInt());
+            await _audioPlayer.seek(newPosition);
+            setState(() {
+              _currentPosition = newPosition;
+            });
+          },
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(formatDuration(_currentPosition)),
+              Text(formatDuration(_songDuration)),
+            ],
+          ),
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            IconButton(
+              iconSize: 36,
+              icon: Icon(Icons.skip_previous),
+              onPressed: _previousSong,
+            ),
+            IconButton(
+              iconSize: 48,
+              icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
+              onPressed: () => _playPauseAudio(_songs[songIndex].data),
+            ),
+            IconButton(
+              iconSize: 36,
+              icon: Icon(Icons.skip_next),
+              onPressed: _nextSong,
+            ),
+          ],
+        ),
+        SizedBox(height: 20),
+      ],
+    );
+  }
+
+  String formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final minutes = twoDigits(duration.inMinutes.remainder(60));
+    final seconds = twoDigits(duration.inSeconds.remainder(60));
+    return '$minutes:$seconds';
   }
 
   @override
@@ -87,16 +194,7 @@ class _AudioFilesScreenState extends State<AudioFilesScreen> {
                 return ListTile(
                   title: Text(_songs[index].title),
                   subtitle: Text(_songs[index].artist ?? "Unknown Artist"),
-                  trailing: IconButton(
-                    icon: Icon(
-                      _isPlaying && _currentSongPath == _songs[index].data
-                          ? Icons.pause
-                          : Icons.play_arrow,
-                    ),
-                    onPressed: () {
-                      _playPauseAudio(_songs[index].data);
-                    },
-                  ),
+                  onTap: () => _openPlayer(context, index),
                 );
               },
             ),
