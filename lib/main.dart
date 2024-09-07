@@ -21,7 +21,8 @@ class AudioFilesScreen extends StatefulWidget {
   _AudioFilesScreenState createState() => _AudioFilesScreenState();
 }
 
-class _AudioFilesScreenState extends State<AudioFilesScreen> {
+class _AudioFilesScreenState extends State<AudioFilesScreen>
+    with WidgetsBindingObserver {
   final OnAudioQuery _audioQuery = OnAudioQuery();
   final AudioPlayer _audioPlayer = AudioPlayer();
   List<SongModel> _songs = [];
@@ -33,6 +34,7 @@ class _AudioFilesScreenState extends State<AudioFilesScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _fetchAudioFiles();
     _audioPlayer.onPositionChanged.listen((Duration newPosition) {
       setState(() {
@@ -45,6 +47,21 @@ class _AudioFilesScreenState extends State<AudioFilesScreen> {
         _songDuration = newDuration;
       });
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance
+        .removeObserver(this); // Remove observer to avoid memory leaks
+    _audioPlayer.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _fetchAudioFiles(); // Refresh song list when the app comes to the foreground
+    }
   }
 
   Future<void> _fetchAudioFiles() async {
@@ -183,12 +200,6 @@ class _AudioFilesScreenState extends State<AudioFilesScreen> {
     final minutes = twoDigits(duration.inMinutes.remainder(60));
     final seconds = twoDigits(duration.inSeconds.remainder(60));
     return '$minutes:$seconds';
-  }
-
-  @override
-  void dispose() {
-    _audioPlayer.dispose();
-    super.dispose();
   }
 
   @override
