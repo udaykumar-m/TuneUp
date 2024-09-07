@@ -57,8 +57,19 @@ class _AudioFilesScreenState extends State<AudioFilesScreen> {
   }
 
   Future<bool> _requestPermission() async {
-    PermissionStatus status = await Permission.storage.request();
-    return status.isGranted;
+    if (await Permission.storage.isGranted) {
+      return true;
+    }
+
+    if (await Permission.audio.request().isGranted) {
+      return true;
+    }
+
+    if (await Permission.storage.isPermanentlyDenied) {
+      openAppSettings();
+      return false;
+    }
+    return false;
   }
 
   void _playPauseAudio(String songPath) async {
@@ -186,18 +197,21 @@ class _AudioFilesScreenState extends State<AudioFilesScreen> {
       appBar: AppBar(
         title: Text("Audio Files"),
       ),
-      body: _songs.isEmpty
-          ? Center(child: CircularProgressIndicator())
-          : ListView.builder(
-              itemCount: _songs.length,
-              itemBuilder: (context, index) {
-                return ListTile(
-                  title: Text(_songs[index].title),
-                  subtitle: Text(_songs[index].artist ?? "Unknown Artist"),
-                  onTap: () => _openPlayer(context, index),
-                );
-              },
-            ),
+      body: RefreshIndicator(
+        onRefresh: _fetchAudioFiles,
+        child: _songs.isEmpty
+            ? Center(child: CircularProgressIndicator())
+            : ListView.builder(
+                itemCount: _songs.length,
+                itemBuilder: (context, index) {
+                  return ListTile(
+                    title: Text(_songs[index].title),
+                    subtitle: Text(_songs[index].artist ?? "Unknown Artist"),
+                    onTap: () => _openPlayer(context, index),
+                  );
+                },
+              ),
+      ),
     );
   }
 }
