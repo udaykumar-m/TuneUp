@@ -25,14 +25,29 @@ class AudioFilesScreen extends StatefulWidget {
   _AudioFilesScreenState createState() => _AudioFilesScreenState();
 }
 
-class _AudioFilesScreenState extends State<AudioFilesScreen> {
+class _AudioFilesScreenState extends State<AudioFilesScreen>
+    with WidgetsBindingObserver {
   final OnAudioQuery _audioQuery = OnAudioQuery();
   List<SongModel> _songs = [];
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _fetchAudioFiles();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _fetchAudioFiles(); // Refresh song list when the app comes to the foreground
+    }
   }
 
   Future<void> _fetchAudioFiles() async {
@@ -68,18 +83,21 @@ class _AudioFilesScreenState extends State<AudioFilesScreen> {
       appBar: AppBar(
         title: const Text('Audio Files'),
       ),
-      body: _songs.isEmpty
-          ? const Center(child: CircularProgressIndicator())
-          : ListView.builder(
-              itemCount: _songs.length,
-              itemBuilder: (context, index) {
-                return ListTile(
-                  title: Text(_songs[index].title),
-                  subtitle: Text(_songs[index].artist ?? "Unknown Artist"),
-                  onTap: () => _openPlayer(context, _songs[index]),
-                );
-              },
-            ),
+      body: RefreshIndicator(
+        onRefresh: _fetchAudioFiles,
+        child: _songs.isEmpty
+            ? const Center(child: CircularProgressIndicator())
+            : ListView.builder(
+                itemCount: _songs.length,
+                itemBuilder: (context, index) {
+                  return ListTile(
+                    title: Text(_songs[index].title),
+                    subtitle: Text(_songs[index].artist ?? "Unknown Artist"),
+                    onTap: () => _openPlayer(context, _songs[index]),
+                  );
+                },
+              ),
+      ),
     );
   }
 
@@ -163,69 +181,69 @@ class _AudioPlayerBottomSheetState extends State<AudioPlayerBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // SizedBox(height: 20),
-        // QueryArtworkWidget(
-        //   id: widget.song.id,
-        //   type: ArtworkType.AUDIO,
-        //   nullArtworkWidget: Icon(Icons.music_note, size: 100),
-        //   artworkFit: BoxFit.cover,
-        // ),
-        const SizedBox(height: 10),
-        Text(
-          widget.song.title,
-          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          textAlign: TextAlign.center,
-        ),
-        Text(
-          widget.song.artist ?? "Unknown Artist",
-          style: const TextStyle(fontSize: 18, color: Colors.grey),
-        ),
-        const SizedBox(height: 20),
-        Slider(
-          value: _currentPosition.inSeconds.toDouble(),
-          min: 0,
-          max: _songDuration.inSeconds.toDouble(),
-          onChanged: (double value) {
-            _seekAudio(value);
-          },
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return PopScope(
+      onPopInvoked: (bool popped) {
+        if (_isPlaying && popped) {
+          _audioPlayer.pause();
+        }
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 10),
+          Text(
+            widget.song.title,
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          Text(
+            widget.song.artist ?? "Unknown Artist",
+            style: const TextStyle(fontSize: 18, color: Colors.grey),
+          ),
+          const SizedBox(height: 20),
+          Slider(
+            value: _currentPosition.inSeconds.toDouble(),
+            min: 0,
+            max: _songDuration.inSeconds.toDouble(),
+            onChanged: (double value) {
+              _seekAudio(value);
+            },
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(formatDuration(_currentPosition)),
+                Text(formatDuration(_songDuration)),
+              ],
+            ),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              Text(formatDuration(_currentPosition)),
-              Text(formatDuration(_songDuration)),
+              IconButton(
+                iconSize: 36,
+                icon: const Icon(Icons.skip_previous),
+                onPressed: () {}, // Add skip logic if needed
+              ),
+              IconButton(
+                iconSize: 48,
+                icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
+                onPressed: () {
+                  _playPauseAudio();
+                },
+              ),
+              IconButton(
+                iconSize: 36,
+                icon: const Icon(Icons.skip_next),
+                onPressed: () {}, // Add skip logic if needed
+              ),
             ],
           ),
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            IconButton(
-              iconSize: 36,
-              icon: const Icon(Icons.skip_previous),
-              onPressed: () {}, // Add skip logic if needed
-            ),
-            IconButton(
-              iconSize: 48,
-              icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
-              onPressed: () {
-                _playPauseAudio();
-              },
-            ),
-            IconButton(
-              iconSize: 36,
-              icon: const Icon(Icons.skip_next),
-              onPressed: () {}, // Add skip logic if needed
-            ),
-          ],
-        ),
-        const SizedBox(height: 20),
-      ],
+          const SizedBox(height: 20),
+        ],
+      ),
     );
   }
 }
