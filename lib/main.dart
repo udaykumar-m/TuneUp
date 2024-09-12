@@ -46,7 +46,7 @@ class _AudioFilesScreenState extends State<AudioFilesScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      _fetchAudioFiles(); // Refresh song list when the app comes to the foreground
+      _fetchAudioFiles();
     }
   }
 
@@ -93,7 +93,7 @@ class _AudioFilesScreenState extends State<AudioFilesScreen>
                   return ListTile(
                     title: Text(_songs[index].title),
                     subtitle: Text(_songs[index].artist ?? "Unknown Artist"),
-                    onTap: () => _openPlayer(context, _songs[index]),
+                    onTap: () => _openPlayer(context, index),
                   );
                 },
               ),
@@ -101,18 +101,29 @@ class _AudioFilesScreenState extends State<AudioFilesScreen>
     );
   }
 
-  void _openPlayer(BuildContext context, SongModel song) {
+  void _openPlayer(BuildContext context, int index) {
     showModalBottomSheet(
       context: context,
-      builder: (context) => AudioPlayerBottomSheet(song: song),
+      builder: (context) => AudioPlayerBottomSheet(
+        song: _songs[index],
+        songs: _songs,
+        initialIndex: index,
+      ),
     );
   }
 }
 
 class AudioPlayerBottomSheet extends StatefulWidget {
   final SongModel song;
+  final List<SongModel> songs;
+  final int initialIndex;
 
-  const AudioPlayerBottomSheet({super.key, required this.song});
+  const AudioPlayerBottomSheet({
+    super.key,
+    required this.song,
+    required this.songs,
+    required this.initialIndex,
+  });
 
   @override
   _AudioPlayerBottomSheetState createState() => _AudioPlayerBottomSheetState();
@@ -123,15 +134,19 @@ class _AudioPlayerBottomSheetState extends State<AudioPlayerBottomSheet> {
   bool _isPlaying = false;
   Duration _currentPosition = Duration.zero;
   Duration _songDuration = Duration.zero;
+  late int _currentIndex;
 
   @override
   void initState() {
     super.initState();
+    _currentIndex = widget.initialIndex;
     _initializePlayer();
   }
 
   void _initializePlayer() async {
-    _audioPlayer.setSource(DeviceFileSource(widget.song.data)).then((val) {
+    _audioPlayer
+        .setSource(DeviceFileSource(widget.songs[_currentIndex].data))
+        .then((val) {
       _audioPlayer.resume();
       setState(() {
         _isPlaying = true;
@@ -166,6 +181,24 @@ class _AudioPlayerBottomSheetState extends State<AudioPlayerBottomSheet> {
     await _audioPlayer.seek(newPosition);
   }
 
+  void _nextSong() {
+    if (_currentIndex < widget.songs.length - 1) {
+      setState(() {
+        _currentIndex++;
+        _initializePlayer();
+      });
+    }
+  }
+
+  void _previousSong() {
+    if (_currentIndex > 0) {
+      setState(() {
+        _currentIndex--;
+        _initializePlayer();
+      });
+    }
+  }
+
   @override
   void dispose() {
     _audioPlayer.dispose();
@@ -192,12 +225,12 @@ class _AudioPlayerBottomSheetState extends State<AudioPlayerBottomSheet> {
         children: [
           const SizedBox(height: 10),
           Text(
-            widget.song.title,
+            widget.songs[_currentIndex].title,
             style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
           Text(
-            widget.song.artist ?? "Unknown Artist",
+            widget.songs[_currentIndex].artist ?? "Unknown Artist",
             style: const TextStyle(fontSize: 18, color: Colors.grey),
           ),
           const SizedBox(height: 20),
@@ -225,19 +258,17 @@ class _AudioPlayerBottomSheetState extends State<AudioPlayerBottomSheet> {
               IconButton(
                 iconSize: 36,
                 icon: const Icon(Icons.skip_previous),
-                onPressed: () {}, // Add skip logic if needed
+                onPressed: _previousSong,
               ),
               IconButton(
                 iconSize: 48,
                 icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
-                onPressed: () {
-                  _playPauseAudio();
-                },
+                onPressed: _playPauseAudio,
               ),
               IconButton(
                 iconSize: 36,
                 icon: const Icon(Icons.skip_next),
-                onPressed: () {}, // Add skip logic if needed
+                onPressed: _nextSong,
               ),
             ],
           ),
