@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
 import '../local_audioplayer/local_audio.dart';
 
-class BottomNavigationBarExample extends StatefulWidget {
-  const BottomNavigationBarExample({super.key});
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
 
   @override
-  State<BottomNavigationBarExample> createState() =>
-      _BottomNavigationBarExampleState();
+  State<HomePage> createState() => _HomePageState();
 }
 
-class _BottomNavigationBarExampleState
-    extends State<BottomNavigationBarExample> {
+class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
   static const TextStyle optionStyle =
       TextStyle(fontSize: 30, fontWeight: FontWeight.bold);
@@ -41,8 +39,8 @@ class _BottomNavigationBarExampleState
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.business),
-            label: 'Business',
+            icon: Icon(Icons.youtube_searched_for_sharp),
+            label: 'Youtube',
           ),
         ],
         currentIndex: _selectedIndex,
