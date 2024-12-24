@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../local_audioplayer/local_audio.dart';
+import '../youtube/youtube_player.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -14,10 +15,7 @@ class _HomePageState extends State<HomePage> {
       TextStyle(fontSize: 30, fontWeight: FontWeight.bold);
   static const List<Widget> _widgetOptions = <Widget>[
     AudioFilesScreen(),
-    Text(
-      'Index 1: Business',
-      style: optionStyle,
-    ),
+    YouTubeScreen()
   ];
 
   void _onItemTapped(int index) {

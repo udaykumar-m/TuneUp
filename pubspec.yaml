@@ -12,6 +12,8 @@ dependencies:
   permission_handler: ^11.1.0
   flutter:
     sdk: flutter
+  youtube_player_flutter: ^9.1.1
+  http: ^1.2.2
 
 dev_dependencies:
   flutter_test:
