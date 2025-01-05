@@ -135,24 +135,25 @@ class _AudioFilesScreenState extends State<AudioFilesScreen>
     setState(() {
       songName = _songs[index].title;
     });
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) => AudioPlayerBottomSheet(
-        song: _songs[index],
-        songs: _songs,
-        initialIndex: index,
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => FullScreenAudioPlayer(
+          song: _songs[index],
+          songs: _songs,
+          initialIndex: index,
+        ),
       ),
     );
   }
 }
 
-class AudioPlayerBottomSheet extends StatefulWidget {
+class FullScreenAudioPlayer extends StatefulWidget {
   final SongModel song;
   final List<SongModel> songs;
   final int initialIndex;
 
-  const AudioPlayerBottomSheet({
+  const FullScreenAudioPlayer({
     super.key,
     required this.song,
     required this.songs,
@@ -160,10 +161,10 @@ class AudioPlayerBottomSheet extends StatefulWidget {
   });
 
   @override
-  _AudioPlayerBottomSheetState createState() => _AudioPlayerBottomSheetState();
+  _FullScreenAudioPlayerState createState() => _FullScreenAudioPlayerState();
 }
 
-class _AudioPlayerBottomSheetState extends State<AudioPlayerBottomSheet> {
+class _FullScreenAudioPlayerState extends State<FullScreenAudioPlayer> {
   final AudioPlayer _audioPlayer = AudioPlayer();
   bool _isPlaying = false;
   Duration _currentPosition = Duration.zero;
@@ -248,14 +249,11 @@ class _AudioPlayerBottomSheetState extends State<AudioPlayerBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      onPopInvoked: (bool popped) {
-        if (_isPlaying && popped) {
-          _audioPlayer.pause();
-        }
-      },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.songs[_currentIndex].title),
+      ),
+      body: Column(
         children: [
           const SizedBox(height: 10),
           Text(
@@ -306,7 +304,6 @@ class _AudioPlayerBottomSheetState extends State<AudioPlayerBottomSheet> {
               ),
             ],
           ),
-          const SizedBox(height: 20),
         ],
       ),
     );
