@@ -68,22 +68,42 @@ class _AudioFilesScreenState extends State<AudioFilesScreen>
       appBar: AppBar(
         title: const Text('Audio Files'),
       ),
-      body: RefreshIndicator(
-        onRefresh: _fetchAudioFiles,
-        child: _songs.isEmpty
-            ? const Center(child: CircularProgressIndicator())
-            : ListView.builder(
-                itemCount: _songs.length,
-                itemBuilder: (context, index) {
-                  return Card(
-                    child: ListTile(
-                      title: Text(_songs[index].title),
-                      subtitle: Text(_songs[index].artist ?? "Unknown Artist"),
-                      onTap: () => _openPlayer(context, index),
+      body: Column(
+        children: [
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _fetchAudioFiles,
+              child: _songs.isEmpty
+                  ? const Center(child: CircularProgressIndicator())
+                  : ListView.builder(
+                      itemCount: _songs.length,
+                      itemBuilder: (context, index) {
+                        return Card(
+                          child: ListTile(
+                            title: Text(_songs[index].title),
+                            subtitle:
+                                Text(_songs[index].artist ?? "Unknown Artist"),
+                            onTap: () => _openPlayer(context, index),
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
+            ),
+          ),
+          Container(
+            color: Colors.transparent.withOpacity(0.1),
+            width: double.infinity,
+            height: 50,
+            child: const Card(
+              child: Center(
+                child: Text(
+                  'Now Playing',
+                  style: TextStyle(color: Colors.black),
+                ),
               ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -91,6 +111,7 @@ class _AudioFilesScreenState extends State<AudioFilesScreen>
   void _openPlayer(BuildContext context, int index) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       builder: (context) => AudioPlayerBottomSheet(
         song: _songs[index],
         songs: _songs,
