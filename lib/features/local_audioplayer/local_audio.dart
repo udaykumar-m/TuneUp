@@ -62,6 +62,8 @@ class _AudioFilesScreenState extends State<AudioFilesScreen>
     return false;
   }
 
+  String songName = "";
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -91,14 +93,35 @@ class _AudioFilesScreenState extends State<AudioFilesScreen>
             ),
           ),
           Container(
-            color: Colors.transparent.withOpacity(0.1),
             width: double.infinity,
             height: 50,
-            child: const Card(
+            decoration: BoxDecoration(
+              color: Colors.transparent,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  spreadRadius: 5,
+                  blurRadius: 7,
+                  offset: Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Card(
+              elevation: 0,
               child: Center(
-                child: Text(
-                  'Now Playing',
-                  style: TextStyle(color: Colors.black),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    songName != ""
+                        ? Container(
+                            width: 150,
+                            child:
+                                Text(songName, overflow: TextOverflow.ellipsis))
+                        : Text("Now Playing"),
+                    const Icon(Icons.skip_previous),
+                    const Icon(Icons.play_arrow),
+                    const Icon(Icons.skip_next),
+                  ],
                 ),
               ),
             ),
@@ -109,6 +132,9 @@ class _AudioFilesScreenState extends State<AudioFilesScreen>
   }
 
   void _openPlayer(BuildContext context, int index) {
+    setState(() {
+      songName = _songs[index].title;
+    });
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
